@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field nation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" integrity="undefined" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css" integrity="undefined" crossorigin="anonymous">
+</head>
+<body>
+    <a href="/">Home</a>
+    <div class="controller-div">
+        <div class="flex-display">
+            faster<input type="range" id="ranger" min="10" value="1000" max="1000" onchange="setNewSession()"/>slower
+        </div>
+        <small id="ranger-value">1000</small> miliseconds
+    </div>
+    <div class="square-dot" id="dot" data-x-direction="0" data-y-direction='0'></div>
+    <script src="app.js"></script>
+</body>
+</html>

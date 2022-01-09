@@ -6,72 +6,44 @@ use ArrayObject;
 
 class Table extends ArrayObject
 {
-    protected $tableData;
-    protected $headers;
-    protected $emptyCell;
-    protected $attributes;
 
-    public function __construct($data = [], $empty = '-',$attributes=[])
+    public function __construct($collection = [],$attributes=[], $empty = '-')
     {
-        $this->headers = new ArrayObject;
-        $this->tableData = new ArrayObject;
-        $this->attributes = new ArrayObject(array(),ArrayObject::ARRAY_AS_PROPS);
-        $this->emptyCell = $empty;
+        $this->offsetSet('headers', new ArrayObject(array(),ArrayObject::ARRAY_AS_PROPS));
+        $this->offsetSet('tableData', new ArrayObject(array(),ArrayObject::ARRAY_AS_PROPS));
+        $this->offsetSet('attributes', new ArrayObject(array(),ArrayObject::ARRAY_AS_PROPS));
+        $this->offsetSet('emptyCell', $empty);
 
-        foreach ($data as $key => $value) {
-            $this->tableData[$key] = $value;
+        // set table data
+        foreach ($collection as $row => $value) {
+            $this->offsetGet('tableData')->append($value);
+
+            // get all available header and persist
             foreach ($value as $header => $rowData) {
-                $this->headers[$header] = $header;
+                 $this->getHeaders()->offsetExists($header) ?: $this->getHeaders()->offsetSet($header,$header);
             }
         }
-        foreach ($attributes as $key => $value) {
-            $this->attributes[$key] = $value;
-        }
-    }
-    public function getAttributes(){
-        return $this->attributes;
-    }
-    public function displayAsTable() : string
-    {
-        $table = '';
 
-        $table .= $this->addTag($this->preparedTableHeading(), 'thead');
+        // persist all attributes
+        foreach ($attributes as $key => $value) {
+            $this->getAttributes()->offsetSet($key, $value);
+        }
+
+    }
+
+    public function displayAsTable()
+    {
+
+        $table = $this->addTag($this->preparedTableHeading(), 'thead');
         $table .= $this->addTag($this->preparedTableBody(), 'tbody');
 
-        return $this->addTag($table, 'table');
-    }
-
-    public function getHeaders() : object
-    {
-        return $this->headers;
-    }
-
-    public function addTag($data, $tag, $atrribute=[]) : string
-    {
-        return '<' . $tag . ' ' . $this->addAttribute($tag,$atrribute) . ' ' . '>' . $data . '</' . $tag . '>';
-    }
-
-    public function addAttribute($tag,$attributes)
-    {
-        $attr = '';
-        $attributes = $this->preparedAttribute($tag,$attributes);
-        foreach ($attributes as $attribute => $value) {
-            $attr .= $attribute . '="' . $value . '"';
-        }
-        return $attr;
-    }
-    public function preparedAttribute($tag,$attributes){
-        $restrecited = ['td'];
-        if(in_array($tag,$restrecited)){
-            return $attributes;
-        }
-        return property_exists($this->attributes,$tag) ? $this->attributes[$tag]:$attributes;
+        echo $this->addTag($table, 'table');
     }
 
     public function preparedTableHeading() : string
     {
         $headingRow = '';
-        foreach ($this->headers as $header) {
+        foreach ($this->getHeaders() as $header) {
             $headingRow .= $this->addTag($header, 'th');
         }
 
@@ -81,14 +53,22 @@ class Table extends ArrayObject
     public function preparedTableBody() : string
     {
         $tableBody = '';
-        foreach ($this->tableData as $key => $rowData) {
+        foreach ($this->offsetGet('tableData') as $offset => $rowData) {
             $row = '';
-            foreach ($this->headers as $header) {
+            foreach ($this->getHeaders() as $header) {
                 $row .= array_key_exists($header, $rowData)
                     ?
-                    $this->addTag($rowData[$header], 'td',$this->addCellAttribute($header,$key))
+                        is_array($rowData[$header]) 
+                        ? 
+                        $this->addTag('not supported', 'td') 
+                        : 
+                        $this->addTag($rowData[$header], 'td', $this->getCellAttributes($header,$offset))
                     :
-                    $this->addTag($this->emptyCell, 'td',property_exists($this->attributes,'empty') ? $this->attributes['empty']:[]);
+                    $this->addTag(
+                        $this->offsetGet('emptyCell'), 
+                        'td',
+                        $this->getEmptyAttributes()
+                    );
             }
 
             $tableBody .= $this->addTag($row, 'tr',);
@@ -96,39 +76,120 @@ class Table extends ArrayObject
 
         return $tableBody;
     }
-    public function addCellAttribute($col,$row){
-        $attr=[];
-        if(property_exists($this->attributes,'data')){
-            if(array_key_exists($col,$this->attributes['data']) && array_key_exists(($row+1),$this->attributes['data'][$col])){
-                $attr=$this->attributes['data'][$col][($row+1)];
-            }
-        }
-        if(property_exists($this->attributes,'col') && array_key_exists($col,$this->attributes['col'])){
-
-                $colAttrs = $this->attributes['col'][$col];
-                foreach($colAttrs as $colAttr => $values ){
-                    if (array_key_exists($colAttr, $attr)) {
-                        $separator = $colAttr == 'style' ? ';' : ' '; 
-                        $attr[$colAttr]=$attr[$colAttr] .$separator.$values;
-                    }else{
-                        $attr[$colAttr]=$values;
-                    }
-                }
-        }
-
-        if(property_exists($this->attributes,'row') && array_key_exists(($row+1),$this->attributes['row'])){
-
-            $rowAttrs = $this->attributes['row'][($row+1)];
-            foreach($rowAttrs as $rowAttr => $values ){
-                if (array_key_exists($rowAttr, $attr)) {
-                    $separator = $rowAttr == 'style' ? ';' : ' '; 
-                    $attr[$rowAttr]=$attr[$rowAttr] .$separator.$values;
-                }else{
-                    $attr[$rowAttr]=$values;
-                }
-            }
+    public function addTag($data, $tag, $atrribute=[]) : string
+    {
+        return '<' . $tag . ' ' . $this->addAttribute($tag,$atrribute) . ' ' . '>' . $data . '</' . $tag . '>';
     }
+
+    public function addAttribute($tag,$attributes)
+    {
+        $attr = '';
+        $attributes = $this->getTagAttribute($tag,$attributes);
+        foreach ($attributes as $attribute => $value) {
+            $attr .= $attribute . '="' . $value . '"';
+        }
+        return $attr;
+    }
+    public function getTagAttribute($tag,$attributes){
+        // for `td` tag all attributes handle on @getCellAttributes method
+        
+        if($tag == 'td'){
+            return $attributes;
+        }
+        return (
+            $this->getAttributes()->offsetExists($tag) 
+            ? $this->getAttributes()->offsetGet($tag) 
+            : $attributes
+        );
+    }
+
+    public function getCellAttributes($col,$row){
+        
+        $attr=[];
+        
+        if($this->hasCellAttributes($col,$row)){
+            
+            $attr=$this->getAttributes()->offsetGet('data')[$col][($row+1)];
+            
+        }
+
+        if($this->hasColumnAttributes($col))
+        {
+            $colAttrs = $this->getAttributes()->offsetGet('col')[$col];
+            $this->attributeArr($attr,$colAttrs);
+        }
+
+        if($this->hasRowAttributes($row))
+        {
+            $rowAttrs = $this->getAttributes()->offsetGet('row')[($row+1)];
+            $this->attributeArr($attr,$rowAttrs);
+        }
        
         return $attr;
     }
+
+    public function getHeaders() : object
+    {
+        return $this->offsetGet('headers');
+    }
+
+    public function getAttributes(): object
+    {
+        return $this->offsetGet('attributes');
+    }
+
+    public function hasCellAttributes($col,$row) : bool 
+    {
+        return (
+            $this->getAttributes()->offsetExists('data') 
+            && 
+            array_key_exists($col,$this->getAttributes()->offsetGet('data'))
+            && 
+            array_key_exists(($row+1),$this->getAttributes()->offsetGet('data')[$col])
+        );
+    }
+
+    public function hasColumnAttributes($col) : bool
+    {
+        return (
+            $this->getAttributes()->offsetExists('col') 
+            && 
+            array_key_exists($col,$this->getAttributes()->offsetGet('col'))
+        );
+    }
+
+    public function hasRowAttributes($row) : bool
+    {
+        return (
+            $this->getAttributes()->offsetExists('row') 
+            && 
+            array_key_exists(($row+1),$this->getAttributes()->offsetGet('row'))
+        );
+    }
+
+    public function getEmptyAttributes() : array
+    {
+        return (
+            $this->getAttributes()->offsetExists('empty') 
+            ? 
+            $this->getAttributes()->offsetGet('empty')
+            :
+            []
+        );
+    }
+
+    public function attributeArr(&$attr,$colAttrs) : array
+    {
+        
+        foreach($colAttrs as $colAttr => $values ){
+            if (array_key_exists($colAttr, $attr)) {
+                $separator = $colAttr == 'style' ? ';' : ' '; 
+                $attr[$colAttr]=$attr[$colAttr] .$separator.$values;
+            }else{
+                $attr[$colAttr]=$values;
+            }
+        }
+        return $attr;
+    }
+
 }

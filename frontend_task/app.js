@@ -12,14 +12,14 @@ moveElement = (el,canvas,ranger=1000) => {
         // moving top -> bottom
         if(yDir == 0){
             el.style.top=yPos+10+'px';
-            if(yPos+15 > yPointer){
+            if(yPos+5 > yPointer){
                 el.dataset.yDirection = 1;
             }
         }
         // moving bottom -> top
         if(yDir == 1){
             el.style.top=yPos-10+'px';
-            if(yPos-15 < 0){
+            if(yPos-5 < 0){
                 el.dataset.yDirection = 0;
             }
         }
@@ -29,35 +29,35 @@ moveElement = (el,canvas,ranger=1000) => {
         // moving left -> right
         if(xDir == 0){
             el.style.left=xPos+10+'px';
-            if(xPos+15 > xPointer){
+            if(xPos+5 > xPointer){
                 el.dataset.xDirection = 1;
             }
         }
         // moving left <- right
         if(xDir == 1){
             el.style.left=xPos-10+'px';
-            if(xPos-15 < 0){
+            if(xPos-5 < 0){
                 el.dataset.xDirection = 0;
             }
         }
     // set transition
     el.style.transitionDuration = ranger < 200 ? (Number(ranger)+75)+'ms' : ranger+'ms';
 }
-
+let ranger= document.getElementById('ranger').value;
 let mover= setInterval(
     ()=> {
-        var el = document.getElementById('dot');
-        var canvas = window;
-        moveElement(el,canvas)
-    },1000
+        let el = document.getElementById('dot');
+        let canvas = window;
+        moveElement(el,canvas,ranger)
+    },ranger
 );
 setNewSession = () => {
     let ranger= document.getElementById('ranger').value;
     document.getElementById('ranger-value').innerText=ranger;
     clearInterval(mover);
     mover = setInterval( () => {
-            var el = document.getElementById('dot');
-            var canvas = window;
+            let el = document.getElementById('dot');
+            let canvas = window;
             moveElement(el,canvas,ranger)
         },ranger)
 }

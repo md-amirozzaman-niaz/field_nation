@@ -6,7 +6,8 @@ $data = [
     [
         'id' => 1,
         'name' => 'tony',
-        'status' => 'Deactive'
+        'status' => 'Deactive',
+        'not_always' => 'hmm'
     ],
     [
         'name' => 'matt',
@@ -18,9 +19,12 @@ $data = [
         'id' => 3,
         'age' => 35,
         'name' => 'james',
+        'nested' => [
+            'hello' =>'world'
+        ]
     ]
 ];
-$emptyCell = 'no data';
+
 $attributes = [
     'table' => ['class' => 'table table-border'],
 ];
@@ -28,17 +32,17 @@ echo '<link rel="stylesheet" href="/css/bootstrap.min.css" integrity="undefined"
 
 echo '<a href="/">Home</a>';
 
-echo "<h3>Datatable without styling or attribute injection</h3>";
-$htmlTable = new \Niaz\Html\Table($data, $emptyCell, $attributes);
-echo $htmlTable->displayAsTable();
+echo "<h3>Datatable without styling and attribute</h3>";
+$htmlTable1 = new \Niaz\Html\Table($data, $attributes);
+$htmlTable1->displayAsTable();
 
 
 echo '<hr>';
 
 
-echo "<h3>Datatable with specific styling and attribute injection</h3>";
+echo "<h3>Datatable with specific styling and attribute</h3>";
 
-$emptyCell = '-';
+$emptyCell = 'no data';
 $attributes = [
     // binding stying or any other attribute for table
     'table' => ['class' => 'table table-border', 'data' => 'hmm'],
@@ -72,5 +76,5 @@ $attributes = [
     'empty' => ['class' => 'empty-cell', 'style' => 'background:#e3e3e3;', 'data' => 'empty']
 ];
 
-$htmlTable = new \Niaz\Html\Table($data, $emptyCell, $attributes);
-echo $htmlTable->displayAsTable();
+$htmlTable2 = new \Niaz\Html\Table($data, $attributes,$emptyCell);
+$htmlTable2->displayAsTable();
